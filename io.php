@@ -63,8 +63,10 @@
          else if (!(($_POST['format']=='ascii') || ($_POST['format']=='hex'))){
             $_SESSION['debug'] .= "format incorrect";
          }
-         else if (!(($_POST['operation']=='subBytes') || ($_POST['operation']=='shiftRows') || ($_POST['operation']=='mixColumns') || ($_POST['operation']=='addRoundKey') 
-                    || ($_POST['operation']=='encrypt') || ($_POST['operation']=='decrypt') )){
+         else if (!(($_POST['operation']=='subBytes') || ($_POST['operation']=='shiftRows') || ($_POST['operation']=='mixColumns') 
+                 || ($_POST['operation']=='addRoundKey') 
+                    || ($_POST['operation']=='encrypt') || ($_POST['operation']=='decrypt') || ($_POST['operation']=='invSubBytes') 
+                 || ($_POST['operation']=='invShiftRows') || ($_POST['operation']=='invMixColumns')) ){
             $_SESSION['debug'] .= "operation not supported";
          }
          else {
