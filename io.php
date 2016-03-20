@@ -159,7 +159,8 @@
          }
          $_SESSION['debug'] .= "\nThe result converted back to a linear decimal representation:\n";
          $_SESSION['debug'] .= implode(",", $outputarr);
-
+         
+         $output = "";
          for ($i=0; $i<16; $i++)
          {
               if (strlen(dechex($outputarr[$i])) == 1) {

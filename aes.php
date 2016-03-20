@@ -51,7 +51,9 @@ else {
             }
             break;
         case "decrypt":
-            $result = $aesops->decrypt($state, $key);
+            foreach ($states as $state) {
+             array_push($results, $aesops->decrypt($state, $key));
+            }
             break;
         case "invSubBytes":
             $result = $aesops->invSubBytes($state);
