@@ -53,6 +53,7 @@
       
          $in = htmlspecialchars(trim($_POST['input']));
          $operation = htmlspecialchars(trim($_POST['operation']));
+         $bytearrays = array();
 
          if ( (!isset($in)) || ($in === NULL) ) {
          $_SESSION['debug'] .= "input not correct";
@@ -63,35 +64,32 @@
          else if (!(($_POST['format']=='ascii') || ($_POST['format']=='hex'))){
             $_SESSION['debug'] .= "format incorrect";
          }
-         else if (!(($_POST['operation']=='subBytes') || ($_POST['operation']=='shiftRows') || ($_POST['operation']=='mixColumns') 
-                 || ($_POST['operation']=='addRoundKey') 
-                    || ($_POST['operation']=='encrypt') || ($_POST['operation']=='decrypt') || ($_POST['operation']=='invSubBytes') 
-                 || ($_POST['operation']=='invShiftRows') || ($_POST['operation']=='invMixColumns')) ){
+         else if (!(($_POST['operation']=='subBytes') || ($_POST['operation']=='shiftRows') || ($_POST['operation']=='mixColumns') || ($_POST['operation']=='addRoundKey') 
+                    || ($_POST['operation']=='encrypt') || ($_POST['operation']=='decrypt') )){
             $_SESSION['debug'] .= "operation not supported";
          }
          else {
             if ($_POST['format']=='ascii'){
-               if(strlen($in) > 16){
-                  $_SESSION['debug'] .= "input to long, maximum length is 16 bytes";
-               }
-               else
-               {
-                  //read posted data for state data and for data-format (ascii or hex)
-
+               $strings = str_split($in, 16);
+               foreach ($strings as $string) {
+                  $string = str_pad($string, 16, chr(0));
+                  
                   // convert to a decimal representation of the ascii-values, C for unsigned char
-                  $bytearray = unpack('C*', $in); 
+                  $bytearray = unpack('C*', $string); 
 
                   // make bytearray start at index 0, because result from unpack starts at index 1
                   $bytearray = array_merge($bytearray); 
-                  if (strlen($in)<16){ //pad with null values
-                     for ($i=strlen($in); $i<16; $i++) $bytearray[$i] = 0;
+                  if (strlen($string)<16){ //pad with null values
+                     for ($i=strlen($string); $i<16; $i++) $bytearray[$i] = 0;
                   }
-   
+
                   $_SESSION['debug'] .= "The input converted to a byte-array with the decimal representation of the ascii-values:";
                   $_SESSION['debug'] .= "\n". implode(",", $bytearray) ."\n";
-                  $retv = $bytearray;
-                  $correct = true;
+                  array_push($bytearrays, $bytearray);
                }
+
+               $retv = $bytearrays;
+               $correct = true;
             }
             else if ($_POST['format']=='hex'){
                //$_SESSION['debug'] .= "\nhex format not supported yet, sorry!";
@@ -99,20 +97,22 @@
                $in = str_replace(' ', '', $in); //remove all spaces from string
                $in = str_replace('\x', '', $in); // remove all 0x hex format specifiers
                $in = str_replace('0x', '', $in); // remove all 0x hex format specifiers
-               $index = 0;
-               for ($i=0; $i<strlen($in); $i+=2) {
-                  $ss = substr($in, $i, 2);
-                  //$array = unpack("H*data", $ss);
-                  //$answer = $array["data"];
-                  $bytearray[$index] = hexdec($ss);
-                  $index++;
-               }   
                
-               for ($i=$index; $i<16; $i++) $bytearray[$i] = 0;
-   
-               $_SESSION['debug'] .= "The input converted to a byte-array with the decimal representation of the ascii-values:";
-               $_SESSION['debug'] .= "\n". implode(",", $bytearray) ."\n";
-               $retv = $bytearray;
+               $strings = str_split($in, 32);
+               foreach ($strings as $string) {
+                  $string = str_pad($string, 32, chr(0));
+                  for ($i=0; $i<strlen($string); $i+=2) {
+                     $ss = substr($string, $i, 2);
+                     //$array = unpack("H*data", $ss);
+                     //$answer = $array["data"];
+                     $bytearray[$i/2] = hexdec($ss);
+                  }   
+               
+                  array_push($bytearrays, $bytearray);
+                  $_SESSION['debug'] .= "The input converted to a byte-array with the decimal representation of the ascii-values:";
+                  $_SESSION['debug'] .= "\n". implode(",", $bytearray) ."\n";
+               }
+               $retv = $bytearrays;
                $correct = true;
             }
          }
@@ -162,7 +162,11 @@
 
          for ($i=0; $i<16; $i++)
          {
-            $output.= dechex($outputarr[$i])." ";
+              if (strlen(dechex($outputarr[$i])) == 1) {
+               $output.= "0".dechex($outputarr[$i])." ";
+            } else {
+               $output.= dechex($outputarr[$i])." ";
+            }
          }
          return $output;
          }

@@ -14,17 +14,22 @@ $iop = new ioOperations();
 //create byte array from string key
 $key = $iop->getByteArrayFromKeyString();
 //create byte array from user's input   
-$bytearray = $iop->getByteArrayFromInput();
-if (empty($bytearray))
-    $_SESSION['debug'] .= "\ninput not valid";
+   $bytearrays = $iop->getByteArrayFromInput();
+   if (empty($bytearrays)) {
+      $_SESSION['debug'] .= "\ninput not valid";
+   }
 else {
     //create AES state (4x4 bytes) of byte array
-    $state = $iop->getState($bytearray);
+    $states = array();
+        foreach ($bytearrays as $bytearray) {
+         $state = $iop->getState($bytearray);
+         array_push($states, $state);
+      }
     //put key in 4x4 byte array too
     //$key = $iop->getState($keyarray);
     // perform a subBytes operation
     $aesops = new Aes();
-    $result = array();
+    $results = array();
     $_SESSION['debug'] .= "\nThe " . $operation . " operation:\n";
     switch ($operation) {
         case "subBytes":
@@ -41,7 +46,9 @@ else {
             $result = $aesops->addRoundKey($state, $w, 0); //add roundkey 0 for this example
             break;
         case "encrypt":
-            $result = $aesops->encrypt($state, $key);
+             foreach ($states as $state) {
+             array_push($results, $aesops->encrypt($state, $key));
+            }
             break;
         case "decrypt":
             $result = $aesops->decrypt($state, $key);
@@ -61,7 +68,10 @@ else {
 
 
     // now convert back the final state to output 
-    $output = $iop->convertStateToByteArray($result);
+       foreach ($results as $result) {
+         $output .= $iop->convertStateToByteArray($result);
+
+      }
     $_SESSION['debug'] .= "\n\nThe hexadecimal result of the " . $operation . " operation:\n$output\n";
     $_SESSION['output'] = $output;
 }
