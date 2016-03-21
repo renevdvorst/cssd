@@ -14,22 +14,22 @@ $iop = new ioOperations();
 //create byte array from string key
 $key = $iop->getByteArrayFromKeyString();
 //create byte array from user's input   
-   $bytearrays = $iop->getByteArrayFromInput();
-   if (empty($bytearrays)) {
-      $_SESSION['debug'] .= "\ninput not valid";
-   }
-else {
+$bytearrays = $iop->getByteArrayFromInput();
+$results = array();
+if (empty($bytearrays)) {
+    $_SESSION['debug'] .= "\ninput not valid";
+} else {
     //create AES state (4x4 bytes) of byte array
     $states = array();
-        foreach ($bytearrays as $bytearray) {
-         $state = $iop->getState($bytearray);
-         array_push($states, $state);
-      }
+    foreach ($bytearrays as $bytearray) {
+        $state = $iop->getState($bytearray);
+        array_push($states, $state);
+    }
     //put key in 4x4 byte array too
     //$key = $iop->getState($keyarray);
     // perform a subBytes operation
     $aesops = new Aes();
-    $results = array();
+
     $_SESSION['debug'] .= "\nThe " . $operation . " operation:\n";
     switch ($operation) {
         case "subBytes":
@@ -39,21 +39,30 @@ else {
             $result = $aesops->shiftRows($state);
             break;
         case "mixColumns":
-            $result = $aesops->mixColumns($state);
+            $result = $aesops->mixColumns($state); 
             break;
         case "addRoundKey":
             $w = $aesops->keyExpansion($key); //generate roundkeys in key expansion 
             $result = $aesops->addRoundKey($state, $w, 0); //add roundkey 0 for this example
             break;
         case "encrypt":
-             foreach ($states as $state) {
-             array_push($results, $aesops->encrypt($state, $key));
+            if ($_POST['mode'] == 'ecb') {
+                foreach ($states as $state) {
+                    array_push($results, $aesops->encrypt($state, $key));
+                }
+            } else {
+                $aesops->encryptCBC($key, $states, $results);
             }
             break;
         case "decrypt":
-            foreach ($states as $state) {
-             array_push($results, $aesops->decrypt($state, $key));
+            if ($_POST['mode'] == 'ecb') {
+                foreach ($states as $state) {
+                    array_push($results, $aesops->decrypt($state, $key));
+                }
+            } else {
+                $aesops->decryptCBC($key, $states, $results);
             }
+
             break;
         case "invSubBytes":
             $result = $aesops->invSubBytes($state);
@@ -70,10 +79,9 @@ else {
 
 
     // now convert back the final state to output 
-       foreach ($results as $result) {
-         $output .= $iop->convertStateToByteArray($result);
-
-      }
+    foreach ($results as $result) {
+        $output .= $iop->convertStateToByteArray($result);
+    }
     $_SESSION['debug'] .= "\n\nThe hexadecimal result of the " . $operation . " operation:\n$output\n";
     $_SESSION['output'] = $output;
 }
@@ -162,6 +170,47 @@ class Aes {
     }
 
 //end function encrypt
+    public function encryptCBC($key, $states, &$results) {
+        $iop = new ioOperations();
+        $iv = $iop->getByteArrayFromIVString();
+        $iv = $iop->getState($iv);
+        $aesops = new Aes();
+        $xor = array();
+
+        foreach ($states as $state) {
+            for ($i = 0; $i < 4; $i++) {
+                //$xor = array();
+                for ($j = 0; $j < 4; $j++) {
+                    $xor[$i][$j] = $state[$i][$j] ^ $iv[$i][$j];
+                }
+            }
+
+            $output = $aesops->encrypt($xor, $key);
+            array_push($results, $output);
+            $iv = $output; //output is iv voor volgende rondje
+        }
+    }
+
+    public function decryptCBC($key, $states, &$results) {
+        $iop = new ioOperations();
+        $iv = $iop->getByteArrayFromIVString();
+        $iv = $iop->getState($iv);
+        $aesops = new Aes();
+        $xor = array();
+
+        foreach ($states as $state) {
+
+
+            $output = $aesops->decrypt($state, $key);
+            for ($i = 0; $i < 4; $i++) {
+                for ($j = 0; $j < 4; $j++) {
+                    $xor[$i][$j] = $output[$i][$j] ^ $iv[$i][$j];
+                }
+            }
+            array_push($results, $xor);
+            $iv = $state; //input voor decrypt is iv voor volgende rondje
+        }
+    }
 
     public function decrypt($input, $key) {
         $aesops = new Aes();
@@ -173,11 +222,10 @@ class Aes {
             $input = $this->invSubBytes($input);
             $input = $this->addRoundKey($input, $w, $round);
             $input = $this->invMixColumns($input);
-            
         }
         $input = $this->invShiftRows($input);
         $input = $this->invSubBytes($input);
-        
+
         $input = $this->addRoundKey($input, $w, 0);
         return($input);
     }

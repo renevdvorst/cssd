@@ -7,7 +7,7 @@ include('includes/htmlhead.php');
 
     <div id="wrapper">
 
-        <?php include('includes/header.php'); ?>
+        <?php include('includes/header.php'); ?> 
 
         <?php include('includes/nav.php'); ?>
 
@@ -26,18 +26,28 @@ include('includes/htmlhead.php');
                     if ((empty($_SESSION['key'])) || (!isset($_SESSION['key']))) {
                         $_SESSION['key'] = "11 22 33 44 55 66 77 88 99 00 AA BB CC DD EE FF";
                     }
+                    if ((empty($_SESSION['iv'])) || (!isset($_SESSION['iv']))) {
+                        $_SESSION['iv'] = "11 22 33 44 55 66 77 88 99 00 AA BB CC DD EE FF";
+                    }
                     ?>
 
                     <form method="post" action="aes.php">
                         <label for="key">Key:</label>
                         <input type="text" id="key" name="key" size="60" value="<?php echo $_SESSION['key']; ?>">
+                        <input checked id="ecb" name="mode" type=radio value="ecb">
+                        <label for="ascii">ECB</label>
+                        <input id="cbc" name="mode" type=radio value="cbc">
+                        <label for="ascii">CBC</label>
                         <br>
                         <label for="input">Input:</label>
                         <input type="text" id="input" name="input" size="60" value="<?php echo $_SESSION['input']; ?>">
-                        <input checked id="ascii" name="format" type=radio value="ascii">
+                        <input id="ascii" name="format" type=radio value="ascii">
                         <label for="ascii">Ascii</label>
-                        <input id="hex" name="format" type=radio value="hex">
+                        <input checked id="hex" name="format" type=radio value="hex">
                         <label for="hex">Hex</label>
+                        <br>
+                        <label for="input">IV:</label>
+                        <input type="text" id="iv" name="iv" size="60" value="<?php echo $_SESSION['iv']; ?>">
                         <br><br>
                         <input type="submit" name="operation" value="subBytes" />
                         <input type="submit" name="operation" value="shiftRows" />
@@ -109,7 +119,19 @@ include('includes/htmlhead.php');
                     <?php include('includes/footer.php'); ?>
 
                     </div> <!-- End #wrapper -->
-
+                    <script type="text/javascript">
+                        $('#cbc, #ecb').change(function () {
+                            if ($("#cbc").prop("checked")) {
+                                $("#iv").prop("disabled", false);
+                            }
+                            if ($("#ecb").prop("checked")) {
+                                $("#iv").prop("disabled", true);
+                            }
+                        });
+                        $(function () {
+                            $('#cbc, #ecb').change();
+                        });
+                    </script>
                     </body>
 
                     </html>
